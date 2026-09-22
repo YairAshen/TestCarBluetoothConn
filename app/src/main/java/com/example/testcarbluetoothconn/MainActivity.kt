@@ -133,18 +133,18 @@ fun BluetoothStatusScreen(
             !state.bluetoothEnabled -> {
                 StatusCard(
                     title = "Bluetooth off",
-                    body = "Turn on Bluetooth, then connect to the car from Android Bluetooth settings."
+                    body = "Turn on Bluetooth, then connect headphones or the car from Android Bluetooth settings."
                 )
             }
 
             else -> {
-                val connected = state.connectedDevices.isNotEmpty()
+                val connectedDevices = state.connectedDevices
                 StatusCard(
-                    title = if (connected) "Connected" else "Not connected",
-                    body = if (connected) {
-                        "${state.connectedDevices.size} Bluetooth device(s) connected."
+                    title = if (connectedDevices.isNotEmpty()) "Connected" else "Disconnected",
+                    body = if (connectedDevices.isNotEmpty()) {
+                        "${connectedDevices.size} Bluetooth device(s) currently connected."
                     } else {
-                        "No Bluetooth devices are currently connected."
+                        "No Bluetooth devices are currently connected. Paired devices may still be listed below."
                     }
                 )
 
@@ -165,32 +165,64 @@ fun BluetoothStatusScreen(
                 }
 
                 Text(
-                    text = "Currently connected devices",
+                    text = "Currently connected",
                     style = MaterialTheme.typography.titleMedium
                 )
-                if (state.connectedDevices.isEmpty()) {
+                if (connectedDevices.isEmpty()) {
                     Text(
                         text = "None",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
-                    state.connectedDevices.forEach { device ->
-                        StatusCard(
-                            title = device.name,
-                            body = device.address
-                        )
+                    connectedDevices.forEach { device ->
+                        DeviceCard(device)
+                    }
+                }
+
+                Text(
+                    text = "Paired devices",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                val pairedDevices = state.devices.filter { it.paired }
+                if (pairedDevices.isEmpty()) {
+                    Text(
+                        text = "None",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    pairedDevices.forEach { device ->
+                        DeviceCard(device)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Keep this screen open, then connect or disconnect the car Bluetooth from the phone or the car.",
+                    text = "Keep this screen open, then connect or disconnect headphones or the car. Only devices with an active A2DP, HFP, or GATT profile are shown as connected.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
+}
+
+@Composable
+private fun DeviceCard(device: TrackedBluetoothDevice) {
+    val status = when {
+        device.connected -> "Connected"
+        device.paired -> "Disconnected (paired)"
+        else -> "Disconnected"
+    }
+    val body = buildString {
+        append(status)
+        append("\n")
+        append(device.address)
+        if (device.connected && device.connectedProfiles.isNotEmpty()) {
+            append("\nProfiles: ")
+            append(device.connectedProfiles.joinToString(", "))
+        }
+    }
+    StatusCard(title = device.name, body = body)
 }
 
 @Composable
@@ -218,12 +250,25 @@ fun BluetoothStatusPreview() {
                 bluetoothAvailable = true,
                 bluetoothEnabled = true,
                 hasPermission = true,
-                connectedDevices = listOf(
-                    ConnectedBluetoothDevice("Car", "AA:BB:CC:DD:EE:FF")
+                devices = listOf(
+                    TrackedBluetoothDevice(
+                        name = "Headphones",
+                        address = "AA:BB:CC:DD:EE:FF",
+                        paired = true,
+                        connected = true,
+                        connectedProfiles = listOf("A2DP", "HFP")
+                    ),
+                    TrackedBluetoothDevice(
+                        name = "Car",
+                        address = "11:22:33:44:55:66",
+                        paired = true,
+                        connected = false,
+                        connectedProfiles = emptyList()
+                    )
                 ),
                 lastEvent = BluetoothEvent(
                     connected = true,
-                    deviceName = "Car",
+                    deviceName = "Headphones",
                     deviceAddress = "AA:BB:CC:DD:EE:FF"
                 )
             ),
