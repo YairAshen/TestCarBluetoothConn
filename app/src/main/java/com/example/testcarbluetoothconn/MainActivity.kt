@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,13 +36,14 @@ import androidx.core.content.ContextCompat
 import com.example.testcarbluetoothconn.ui.theme.TestCarBluetoothConnTheme
 
 class MainActivity : ComponentActivity() {
-    private var uiState by mutableStateOf(BluetoothUiState())
+    // neverEqualPolicy: always recompose when the tracker publishes, even if device lists look equal.
+    private var uiState by mutableStateOf(BluetoothUiState(), neverEqualPolicy())
     private lateinit var tracker: BluetoothConnectionTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        tracker = BluetoothConnectionTracker(applicationContext) { state ->
-            runOnUiThread { uiState = state }
+        tracker = BluetoothConnectionTracker(this) { state ->
+            uiState = state
         }
         enableEdgeToEdge()
         setContent {
