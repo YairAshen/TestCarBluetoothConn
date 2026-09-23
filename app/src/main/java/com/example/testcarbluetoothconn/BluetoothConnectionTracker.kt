@@ -177,6 +177,11 @@ class BluetoothConnectionTracker(
             BluetoothDevice.ACTION_ACL_CONNECTED -> {
                 Log.i(TAG, "ACL_CONNECTED device=${deviceLabel(device)}")
                 onLinkOrProfileEvent(device, reason = "ACL_CONNECTED")
+
+                // שליחת טריגר לרכב לשרת LifeManager
+                val deviceName = device?.safeName()
+                val deviceAddress = device?.address
+                LifeManagerTriggerService.sendCarEntryTrigger(deviceName, deviceAddress)
             }
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                 Log.i(TAG, "ACL_DISCONNECTED device=${deviceLabel(device)}")
@@ -188,7 +193,7 @@ class BluetoothConnectionTracker(
                 Log.i(
                     TAG,
                     "A2DP connection state ${profileStateName(previous)} -> ${profileStateName(state)} " +
-                        "device=${deviceLabel(device)}"
+                            "device=${deviceLabel(device)}"
                 )
                 if (state == BluetoothProfile.STATE_DISCONNECTED ||
                     state == BluetoothProfile.STATE_DISCONNECTING
@@ -204,7 +209,7 @@ class BluetoothConnectionTracker(
                 Log.i(
                     TAG,
                     "HEADSET/HFP connection state ${profileStateName(previous)} -> ${profileStateName(state)} " +
-                        "device=${deviceLabel(device)}"
+                            "device=${deviceLabel(device)}"
                 )
                 if (state == BluetoothProfile.STATE_DISCONNECTED ||
                     state == BluetoothProfile.STATE_DISCONNECTING
@@ -220,7 +225,7 @@ class BluetoothConnectionTracker(
                 Log.i(
                     TAG,
                     "adapter ACL connection ${profileStateName(previous)} -> ${profileStateName(state)} " +
-                        "device=${deviceLabel(device)}"
+                            "device=${deviceLabel(device)}"
                 )
                 if (state == BluetoothAdapter.STATE_DISCONNECTED ||
                     state == BluetoothAdapter.STATE_DISCONNECTING
@@ -247,7 +252,6 @@ class BluetoothConnectionTracker(
             }
         }
     }
-
     @SuppressLint("MissingPermission")
     private fun onDisconnectEvent(device: BluetoothDevice?, reason: String) {
         logDeviceProfileStates("after $reason", device)

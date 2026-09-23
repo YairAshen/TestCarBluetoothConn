@@ -12,6 +12,8 @@
     <!-- Android 12+ runtime permission for device names, bonded devices, and profiles. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature
         android:name="android.hardware.bluetooth"
         android:required="false" />
