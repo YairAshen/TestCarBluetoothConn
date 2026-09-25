@@ -36,6 +36,7 @@ import com.example.testcarbluetoothconn.ui.theme.TestCarBluetoothConnTheme
 
 class MainActivity : ComponentActivity() {
     private var uiState by mutableStateOf(BluetoothUiState())
+    private var cameraPermissionGranted by mutableStateOf(false)
     private lateinit var tracker: BluetoothConnectionTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
         tracker = BluetoothConnectionTracker(applicationContext) { state ->
             runOnUiThread { uiState = state }
         }
+        cameraPermissionGranted = hasCameraPermission()
         enableEdgeToEdge()
         setContent {
             TestCarBluetoothConnTheme {
@@ -55,11 +57,20 @@ class MainActivity : ComponentActivity() {
                         tracker.start(hasPermission = false)
                     }
                 }
+                val cameraPermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    cameraPermissionGranted = granted
+                }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     BluetoothStatusScreen(
                         state = uiState,
+                        cameraPermissionGranted = cameraPermissionGranted,
                         onRequestPermission = {
                             permissionLauncher.launch(requiredBluetoothPermissions())
+                        },
+                        onRequestCameraPermission = {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -70,6 +81,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        cameraPermissionGranted = hasCameraPermission()
         tracker.start(hasBluetoothPermission())
     }
 
@@ -84,6 +96,11 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED
         }
     }
+
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+    }
 }
 
 private fun requiredBluetoothPermissions(): Array<String> {
@@ -97,7 +114,9 @@ private fun requiredBluetoothPermissions(): Array<String> {
 @Composable
 fun BluetoothStatusScreen(
     state: BluetoothUiState,
+    cameraPermissionGranted: Boolean,
     onRequestPermission: () -> Unit,
+    onRequestCameraPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -111,6 +130,16 @@ fun BluetoothStatusScreen(
             text = "Car Bluetooth connection",
             style = MaterialTheme.typography.headlineSmall
         )
+
+        if (!cameraPermissionGranted) {
+            StatusCard(
+                title = "Camera permission required",
+                body = "Camera permission is needed before the camera can open."
+            )
+            Button(onClick = onRequestCameraPermission) {
+                Text("Grant camera permission")
+            }
+        }
 
         when {
             !state.bluetoothAvailable -> {
@@ -227,7 +256,9 @@ fun BluetoothStatusPreview() {
                     deviceAddress = "AA:BB:CC:DD:EE:FF"
                 )
             ),
-            onRequestPermission = {}
+            cameraPermissionGranted = true,
+            onRequestPermission = {},
+            onRequestCameraPermission = {}
         )
     }
 }
