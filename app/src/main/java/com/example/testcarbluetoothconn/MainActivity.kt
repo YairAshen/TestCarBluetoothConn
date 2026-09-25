@@ -37,6 +37,7 @@ import com.example.testcarbluetoothconn.ui.theme.TestCarBluetoothConnTheme
 class MainActivity : ComponentActivity() {
     private var uiState by mutableStateOf(BluetoothUiState())
     private var cameraPermissionGranted by mutableStateOf(false)
+    private var notificationPermissionGranted by mutableStateOf(false)
     private lateinit var tracker: BluetoothConnectionTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { uiState = state }
         }
         cameraPermissionGranted = hasCameraPermission()
+        notificationPermissionGranted = hasNotificationPermission()
         enableEdgeToEdge()
         setContent {
             TestCarBluetoothConnTheme {
@@ -62,15 +64,24 @@ class MainActivity : ComponentActivity() {
                 ) { granted ->
                     cameraPermissionGranted = granted
                 }
+                val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    notificationPermissionGranted = granted
+                }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     BluetoothStatusScreen(
                         state = uiState,
                         cameraPermissionGranted = cameraPermissionGranted,
+                        notificationPermissionGranted = notificationPermissionGranted,
                         onRequestPermission = {
                             permissionLauncher.launch(requiredBluetoothPermissions())
                         },
                         onRequestCameraPermission = {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                        onRequestNotificationPermission = {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -82,6 +93,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         cameraPermissionGranted = hasCameraPermission()
+        notificationPermissionGranted = hasNotificationPermission()
         tracker.start(hasBluetoothPermission())
     }
 
@@ -101,6 +113,14 @@ class MainActivity : ComponentActivity() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
     }
+
+    private fun hasNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+    }
 }
 
 private fun requiredBluetoothPermissions(): Array<String> {
@@ -115,8 +135,10 @@ private fun requiredBluetoothPermissions(): Array<String> {
 fun BluetoothStatusScreen(
     state: BluetoothUiState,
     cameraPermissionGranted: Boolean,
+    notificationPermissionGranted: Boolean,
     onRequestPermission: () -> Unit,
     onRequestCameraPermission: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -138,6 +160,16 @@ fun BluetoothStatusScreen(
             )
             Button(onClick = onRequestCameraPermission) {
                 Text("Grant camera permission")
+            }
+        }
+
+        if (!notificationPermissionGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            StatusCard(
+                title = "Notification permission required",
+                body = "Notification permission is needed before the app can post notifications."
+            )
+            Button(onClick = onRequestNotificationPermission) {
+                Text("Grant notification permission")
             }
         }
 
@@ -257,8 +289,10 @@ fun BluetoothStatusPreview() {
                 )
             ),
             cameraPermissionGranted = true,
+            notificationPermissionGranted = true,
             onRequestPermission = {},
-            onRequestCameraPermission = {}
+            onRequestCameraPermission = {},
+            onRequestNotificationPermission = {}
         )
     }
 }

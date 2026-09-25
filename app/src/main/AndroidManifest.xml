@@ -15,6 +15,9 @@
     <!-- Runtime permission required before the camera can open. -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Android 13+ runtime permission required before the app can post notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-feature
         android:name="android.hardware.bluetooth"
         android:required="false" />
